@@ -47,7 +47,7 @@ int u8_toucs(uint32_t *dest, int32_t sz, const char *src, int32_t srcsz);
 int u8_toutf8(char *dest, int32_t sz, uint32_t *src, int32_t srcsz);
 
 /* single character to UTF-8 */
-int u8_wc_toutf8(char *dest, wchar_t ch);
+int u8_wc_toutf8(char *dest, unsigned long ch);
 
 /* character number to byte offset */
 int u8_offset(char *str, int32_t charnum);
@@ -57,6 +57,9 @@ int u8_charnum(char *s, int32_t offset);
 
 /* return next character, updating an index variable */
 uint32_t u8_nextchar(const char *s, int32_t *i);
+
+/* copies num_chars characters from src to dest, return bytes written */
+int u8_strncpy (char *dest, const char* src, int num_chars);
 
 /* move to next character */
 void u8_inc(const char *s, int32_t *i);

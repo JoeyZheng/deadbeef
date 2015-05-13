@@ -21,10 +21,7 @@
 
 #include "ddblistview.h"
 
-void
-write_column_config (const char *name, int idx, const char *title, int width, int align_right, int id, int color_override, GdkColor color, const char *format);
-
-void
+int
 rewrite_column_config (DdbListview *listview, const char *name);
 
 void draw_column_data (DdbListview *listview, cairo_t *drawable, DdbListviewIter it, DdbListviewIter group_it, int column, int group_y, int group_height, int group_pinned, int grp_next_y, int x, int y, int width, int height);
@@ -32,8 +29,8 @@ void draw_column_data (DdbListview *listview, cairo_t *drawable, DdbListviewIter
 void
 list_context_menu (DdbListview *listview, DdbListviewIter it, int idx);
 
-void
-append_column_from_textdef (DdbListview *listview, const uint8_t *def);
+int
+load_column_config (DdbListview *listview, const char *key);
 
 void
 add_column_helper (DdbListview *listview, const char *title, int width, int id, const char *format, int align_right);
@@ -54,7 +51,7 @@ void
 pl_common_free (void);
 
 int
-pl_common_get_group (DdbListviewIter it, char *str, int size);
+pl_common_get_group (DdbListview *listview, DdbListviewIter it, char *str, int size);
 
 void
 pl_common_draw_group_title (DdbListview *listview, cairo_t *drawable, DdbListviewIter it, int x, int y, int width, int height);

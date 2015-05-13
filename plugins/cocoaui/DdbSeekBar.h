@@ -8,13 +8,17 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface DdbSeekBar : NSSliderCell
+@interface DdbSeekBar : NSSlider
+@end
 
-@property NSImage *backCapLeft;
-@property NSImage *backCapRight;
-@property NSImage *backFiller;
-@property NSImage *frontCapLeft;
-@property NSImage *frontCapRight;
-@property NSImage *frontFiller;
-
+@interface DdbSeekBarCell : NSSliderCell {
+#if 0
+    NSImage *_backCapLeft;
+    NSImage *_backCapRight;
+    NSImage *_backFiller;
+#endif
+    NSImage *_frontCapLeft;
+    NSImage *_frontCapRight;
+    NSImage *_frontFiller;
+}
 @end

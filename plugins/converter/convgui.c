@@ -1531,6 +1531,16 @@ converter_show (DB_plugin_action_t *act, int ctx) {
     return 0;
 }
 
+#if 0
+GtkWidget*
+title_formatting_help_link_create (gchar *widget_name, gchar *string1, gchar *string2,
+                gint int1, gint int2)
+{
+    GtkWidget *link = gtk_link_button_new_with_label ("http://github.com/Alexey-Yakovenko/deadbeef/wiki/Title-formatting-2.0", _("Help"));
+    return link;
+}
+#endif
+
 static DB_plugin_action_t *
 convgui_get_actions (DB_playItem_t *it) {
     static DB_plugin_action_t convert_action = {

@@ -55,13 +55,16 @@
 #include "dsppreset.h"
 #include "pltmeta.h"
 #include "metacache.h"
+#include "tf.h"
+#include "playqueue.h"
+#include "sort.h"
 
 #define trace(...) { fprintf(stderr, __VA_ARGS__); }
 //#define trace(fmt,...)
 
 //#define DISABLE_VERSIONCHECK 1
 
-#ifdef HAVE_COCOAUI
+#if defined(HAVE_COCOAUI) || defined(OSX_APPBUNDLE)
 #define PLUGINEXT ".dylib"
 #else
 #define PLUGINEXT ".so"
@@ -188,7 +191,6 @@ static DB_functions_t deadbeef_api = {
     .pl_set_item_replaygain = (void (*)(DB_playItem_t *it, int idx, float value))pl_set_item_replaygain,
     .pl_get_item_replaygain = (float (*)(DB_playItem_t *it, int idx))pl_get_item_replaygain,
     .plt_get_totaltime = (float (*) (ddb_playlist_t *plt))plt_get_totaltime,
-    .plt_get_item_idx = (int (*) (ddb_playlist_t *playlist, DB_playItem_t *it, int iter))plt_get_item_idx,
     .plt_get_item_for_idx = (DB_playItem_t * (*) (ddb_playlist_t *playlist, int idx, int iter))plt_get_item_for_idx,
     .pl_get_totaltime = pl_get_totaltime,
     .pl_getcount = pl_getcount,
@@ -239,11 +241,11 @@ static DB_functions_t deadbeef_api = {
     .plt_insert_cue_from_buffer = (DB_playItem_t *(*) (ddb_playlist_t *plt, DB_playItem_t *after, DB_playItem_t *origin, const uint8_t *buffer, int buffersize, int numsamples, int samplerate))plt_insert_cue_from_buffer,
     .plt_insert_cue = (DB_playItem_t *(*)(ddb_playlist_t *plt, DB_playItem_t *after, DB_playItem_t *origin, int numsamples, int samplerate))plt_insert_cue,
     // playqueue support
-    .pl_playqueue_push = (int (*) (DB_playItem_t *))pl_playqueue_push,
-    .pl_playqueue_clear = pl_playqueue_clear,
-    .pl_playqueue_pop = pl_playqueue_pop,
-    .pl_playqueue_remove = (void (*) (DB_playItem_t *))pl_playqueue_remove,
-    .pl_playqueue_test = (int (*) (DB_playItem_t *))pl_playqueue_test,
+    .pl_playqueue_push = (int (*) (DB_playItem_t *))playqueue_push,
+    .pl_playqueue_clear = playqueue_clear,
+    .pl_playqueue_pop = playqueue_pop,
+    .pl_playqueue_remove = (void (*) (DB_playItem_t *))playqueue_remove,
+    .pl_playqueue_test = (int (*) (DB_playItem_t *))playqueue_test,
     // volume control
     .volume_set_db = plug_volume_set_db,
     .volume_get_db = volume_get_db,
@@ -375,6 +377,21 @@ static DB_functions_t deadbeef_api = {
     // ******* new 1.6 APIs ********
     .plt_set_scroll = (void (*) (ddb_playlist_t *plt, int scroll))plt_set_scroll,
     .plt_get_scroll = (int (*) (ddb_playlist_t *plt))plt_get_scroll,
+    .tf_compile = tf_compile,
+    .tf_free = tf_free,
+    .tf_eval= tf_eval,
+
+    .plt_sort_v2 = (void (*) (ddb_playlist_t *plt, int iter, int id, const char *format, int order))plt_sort_v2,
+
+    .playqueue_push = (int (*) (DB_playItem_t *))playqueue_push,
+    .playqueue_clear = playqueue_clear,
+    .playqueue_pop = playqueue_pop,
+    .playqueue_remove = (void (*) (DB_playItem_t *))playqueue_remove,
+    .playqueue_test = (int (*) (DB_playItem_t *))playqueue_test,
+    .playqueue_get_count = (int (*) (void))playqueue_getcount,
+    .playqueue_get_item = (DB_playItem_t *(*) (int n))playqueue_get_item,
+    .playqueue_remove_nth = (int (*) (int n))playqueue_remove_nth,
+    .playqueue_insert_at = (void (*) (int n, DB_playItem_t *it))playqueue_insert_at,
 };
 
 DB_functions_t *deadbeef = &deadbeef_api;
@@ -656,7 +673,7 @@ load_plugin (const char *plugdir, char *d_name, int l) {
     DB_plugin_t *(*plug_load)(DB_functions_t *api) = dlsym (handle, d_name+3);
 #endif
     if (!plug_load) {
-        trace ("dlsym error: %s\n", dlerror ());
+        trace ("dlsym error: %s (%s)\n", dlerror (), d_name + 3);
         dlclose (handle);
         return -1;
     }
@@ -731,7 +748,7 @@ load_plugin_dir (const char *plugdir, int gui_scan) {
     }
     else
     {
-        trace ("plug_load_all: scandir found %d files\n", n);
+        trace ("load_plugin_dir %s: scandir found %d files\n", plugdir, n);
         int i;
         for (i = 0; i < n; i++)
         {
@@ -1104,6 +1121,11 @@ plug_unload_all (void) {
         if (p->plugin->stop) {
             trace ("stopping %s...\n", p->plugin->name);
             fflush (stderr);
+#if HAVE_COCOAUI
+            if (p->plugin->type == DB_PLUGIN_GUI) {
+                continue;
+            }
+#endif
             p->plugin->stop ();
         }
     }

@@ -92,7 +92,8 @@ on_searchentry_changed                 (GtkEditable     *editable,
                                         gpointer         user_data)
 {
     search_refresh ();
-    main_refresh ();
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_SELECTION, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_SEARCHRESULT, 0);
 }
 
 void
@@ -299,8 +300,27 @@ static void
 search_col_sort (int col, int sort_order, void *user_data) {
     col_info_t *c = (col_info_t*)user_data;
     ddb_playlist_t *plt = deadbeef->plt_get_curr ();
-    deadbeef->plt_sort (plt, PL_SEARCH, c->id, c->format, sort_order-1);
+    deadbeef->plt_sort_v2 (plt, PL_SEARCH, c->id, c->format, sort_order-1);
     deadbeef->plt_unref (plt);
+}
+
+static void
+search_groups_changed (DdbListview *listview, const char *format) {
+    if (!format) {
+        return;
+    }
+    if (listview->group_format) {
+        free (listview->group_format);
+    }
+    if (listview->group_title_bytecode_len >= 0) {
+        listview->group_title_bytecode_len = -1;
+    }
+    if (listview->group_title_bytecode) {
+        free (listview->group_title_bytecode);
+    }
+    deadbeef->conf_set_str ("gtkui.search.group_by", format);
+    listview->group_format = strdup (format);
+    listview->group_title_bytecode_len = deadbeef->tf_compile (listview->group_format, &(listview->group_title_bytecode));
 }
 
 static int lock_column_config = 0;
@@ -308,7 +328,7 @@ static int lock_column_config = 0;
 static void
 search_columns_changed (DdbListview *listview) {
     if (!lock_column_config) {
-        rewrite_column_config (listview, "search");
+        rewrite_column_config (listview, "gtkui.columns.search");
     }
 }
 
@@ -384,6 +404,7 @@ static DdbListviewBinding search_binding = {
     .select = search_select,
 
     .get_group = pl_common_get_group,
+    .groups_changed = search_groups_changed,
 
     .drag_n_drop = NULL,
     .external_drag_n_drop = NULL,
@@ -416,18 +437,16 @@ search_playlist_init (GtkWidget *widget) {
     ddb_listview_set_binding (listview, &search_binding);
     lock_column_config = 1;
     // create default set of columns
-    DB_conf_item_t *col = deadbeef->conf_find ("search.column.", NULL);
-    if (!col) {
-        add_column_helper (listview, _("Artist / Album"), 150, -1, "%a - %b", 0);
-        add_column_helper (listview, _("Track No"), 50, -1, "%n", 1);
-        add_column_helper (listview, _("Title"), 150, -1, "%t", 0);
-        add_column_helper (listview, _("Duration"), 50, -1, "%l", 0);
-    }
-    else {
-        while (col) {
-            append_column_from_textdef (listview, col->value);
-            col = deadbeef->conf_find ("search.column.", col);
-        }
+    if (load_column_config (listview, "gtkui.columns.search") < 0) {
+        add_column_helper (listview, _("Artist / Album"), 150, -1, "%artist% - %album%", 0);
+        add_column_helper (listview, _("Track No"), 50, -1, "%track%", 1);
+        add_column_helper (listview, _("Title"), 150, -1, "%title%", 0);
+        add_column_helper (listview, _("Duration"), 50, -1, "%length%", 0);
     }
     lock_column_config = 0;
+
+    deadbeef->conf_lock ();
+    listview->group_format = strdup (deadbeef->conf_get_str_fast ("gtkui.search.group_by", ""));
+    deadbeef->conf_unlock ();
+    listview->group_title_bytecode_len = deadbeef->tf_compile (listview->group_format, &(listview->group_title_bytecode));
 }

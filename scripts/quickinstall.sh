@@ -6,7 +6,7 @@ cp ./plugins/nullout/.libs/nullout.so $PREFIX/lib/deadbeef/
 cp ./plugins/cdda/.libs/cdda.so $PREFIX/lib/deadbeef/
 cp ./plugins/flac/.libs/flac.so $PREFIX/lib/deadbeef/
 cp ./plugins/alsa/.libs/alsa.so $PREFIX/lib/deadbeef/
-cp ./plugins/mpgmad/.libs/mpgmad.so $PREFIX/lib/deadbeef/
+cp ./plugins/mp3/.libs/mp3.so $PREFIX/lib/deadbeef/
 cp ./plugins/hotkeys/.libs/hotkeys.so $PREFIX/lib/deadbeef/
 cp ./plugins/vtx/.libs/vtx.so $PREFIX/lib/deadbeef/
 cp ./plugins/ffap/.libs/ffap.so $PREFIX/lib/deadbeef/
@@ -53,3 +53,4 @@ cp ./plugins/wma/.libs/wma.so $PREFIX/lib/deadbeef/
 cp ./plugins/pltbrowser/.libs/pltbrowser_gtk2.so $PREFIX/lib/deadbeef/
 cp ./plugins/pltbrowser/.libs/pltbrowser_gtk3.so $PREFIX/lib/deadbeef/
 cp ./plugins/coreaudio/.libs/coreaudio.so $PREFIX/lib/deadbeef/
+cp ./plugins/sc68/.libs/in_sc68.so $PREFIX/lib/deadbeef/

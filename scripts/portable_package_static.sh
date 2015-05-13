@@ -47,7 +47,7 @@ tar jcvf ../../portable_out/build/$OUTNAME\
     $PLUGDIR/lastfm.so\
     $PLUGDIR/m3u.so\
     $PLUGDIR/mms.so\
-    $PLUGDIR/mpgmad.so\
+    $PLUGDIR/mp3.so\
     $PLUGDIR/musepack.so\
     $PLUGDIR/notify.so\
     $PLUGDIR/nullout.so\
@@ -79,6 +79,8 @@ tar jcvf ../../portable_out/build/$OUTNAME\
     $PLUGDIR/wma.so\
     $PLUGDIR/pltbrowser_gtk2.so\
     $PLUGDIR/pltbrowser_gtk3.so\
+    $PLUGDIR/in_sc68.so\
+    $PLUGDIR/data68\
     $PIXMAPDIR\
     $SRCDIR/locale
 cd ../..

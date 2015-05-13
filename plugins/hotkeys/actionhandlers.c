@@ -500,54 +500,54 @@ action_playlist10_handler (DB_plugin_action_t *act, int ctx) {
 int
 action_sort_randomize_handler (DB_plugin_action_t *act, int ctx) {
     ddb_playlist_t *plt = deadbeef->plt_get_curr ();
-    deadbeef->plt_sort (plt, PL_MAIN, -1, NULL, DDB_SORT_RANDOM);
+    deadbeef->plt_sort_v2 (plt, PL_MAIN, -1, NULL, DDB_SORT_RANDOM);
     deadbeef->plt_unref (plt);
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
     return 0;
 }
 
 int
 action_sort_by_date_handler (DB_plugin_action_t *act, int ctx) {
     ddb_playlist_t *plt = deadbeef->plt_get_curr ();
-    deadbeef->plt_sort (plt, PL_MAIN, -1, "%y", DDB_SORT_ASCENDING);
+    deadbeef->plt_sort_v2 (plt, PL_MAIN, -1, "%year%", DDB_SORT_ASCENDING);
     deadbeef->plt_unref (plt);
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
     return 0;
 }
 
 int
 action_sort_by_artist_handler (DB_plugin_action_t *act, int ctx) {
     ddb_playlist_t *plt = deadbeef->plt_get_curr ();
-    deadbeef->plt_sort (plt, PL_MAIN, -1, "%a", DDB_SORT_ASCENDING);
+    deadbeef->plt_sort_v2 (plt, PL_MAIN, -1, "%artist%", DDB_SORT_ASCENDING);
     deadbeef->plt_unref (plt);
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
     return 0;
 }
 
 int
 action_sort_by_album_handler (DB_plugin_action_t *act, int ctx) {
     ddb_playlist_t *plt = deadbeef->plt_get_curr ();
-    deadbeef->plt_sort (plt, PL_MAIN, -1, "%b", DDB_SORT_ASCENDING);
+    deadbeef->plt_sort_v2 (plt, PL_MAIN, -1, "%album%", DDB_SORT_ASCENDING);
     deadbeef->plt_unref (plt);
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
     return 0;
 }
 
 int
 action_sort_by_tracknr_handler (DB_plugin_action_t *act, int ctx) {
     ddb_playlist_t *plt = deadbeef->plt_get_curr ();
-    deadbeef->plt_sort (plt, PL_MAIN, -1, "%n", DDB_SORT_ASCENDING);
+    deadbeef->plt_sort_v2 (plt, PL_MAIN, -1, "%tracknumber%", DDB_SORT_ASCENDING);
     deadbeef->plt_unref (plt);
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
     return 0;
 }
 
 int
 action_sort_by_title_handler (DB_plugin_action_t *act, int ctx) {
     ddb_playlist_t *plt = deadbeef->plt_get_curr ();
-    deadbeef->plt_sort (plt, PL_MAIN, -1, "%t", DDB_SORT_ASCENDING);
+    deadbeef->plt_sort_v2 (plt, PL_MAIN, -1, "%title%", DDB_SORT_ASCENDING);
     deadbeef->plt_unref (plt);
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
     return 0;
 }
 
@@ -567,7 +567,7 @@ action_invert_selection_handler (DB_plugin_action_t *act, int ctx) {
         it = next;
     }
     deadbeef->pl_unlock ();
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_SELECTION, 0);
     return 0;
 }
 
@@ -575,7 +575,7 @@ int
 action_clear_playlist_handler (DB_plugin_action_t *act, int ctx) {
     deadbeef->pl_clear ();
     deadbeef->pl_save_current ();
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
     return 0;
 }
 

@@ -22,31 +22,59 @@
 */
 
 #import <Cocoa/Cocoa.h>
-#import "widgets/DdbTabStrip.h"
+#include "MainWindowController.h"
+#import "SearchWindowController.h"
+#import "PreferencesWindowController.h"
+#include "deadbeef.h"
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+#define MAX_COLUMNS 20
+
+@interface AppDelegate : NSObject <NSApplicationDelegate> {
+    MainWindowController *_mainWindow;
+    PreferencesWindowController *_prefWindow;
+    SearchWindowController *_searchWindow;
+}
+
+- (NSWindow *)mainWindow;
 
 + (int)ddb_message:(int)_id ctx:(uint64_t)ctx p1:(uint32_t)p1 p2:(uint32_t)p2;
 
-@property (assign) IBOutlet NSWindow *window;
-@property (unsafe_unretained) IBOutlet NSTableView *playlist;
-@property (unsafe_unretained) IBOutlet DdbTabStrip *tabStrip;
-
+@property (unsafe_unretained) IBOutlet NSMenu *mainMenu;
 
 @property (unsafe_unretained) IBOutlet NSWindow *addFilesWindow;
 @property (unsafe_unretained) IBOutlet NSTextField *addFilesLabel;
 - (IBAction)addFilesCancel:(id)sender;
-@property (unsafe_unretained) IBOutlet NSTextField *statusBar;
 
+
+@property (unsafe_unretained) IBOutlet NSImageView *dockTileView;
+
+- (IBAction)openPrefWindow:(id)sender;
 
 // file menu
 - (IBAction)openFilesAction:(id)sender;
 - (IBAction)addFilesAction:(id)sender;
 - (IBAction)addFoldersAction:(id)sender;
+- (IBAction)addLocationAction:(id)sender;
+@property (unsafe_unretained) IBOutlet NSPanel *addLocationPanel;
+- (IBAction)addLocationOKAction:(id)sender;
+- (IBAction)addLocationCancelAction:(id)sender;
+@property (unsafe_unretained) IBOutlet NSTextField *addLocationTextField;
+
+- (IBAction)newPlaylistAction:(id)sender;
+- (IBAction)loadPlaylistAction:(id)sender;
+- (IBAction)savePlaylistAction:(id)sender;
+
 
 // edit menu
 - (IBAction)clearAction:(id)sender;
-- (IBAction)removeSelectionAction:(id)sender;
+
+- (IBAction)sortPlaylistByTitle:(id)sender;
+- (IBAction)sortPlaylistByTrackNumber:(id)sender;
+- (IBAction)sortPlaylistByAlbum:(id)sender;
+- (IBAction)sortPlaylistByArtist:(id)sender;
+- (IBAction)sortPlaylistByDate:(id)sender;
+- (IBAction)sortPlaylistRandom:(id)sender;
+- (IBAction)sortPlaylistCustom:(id)sender;
 
 // playback menu
 - (IBAction)previousAction:(id)sender;
@@ -71,9 +99,6 @@
 - (IBAction)loopAllAction:(id)sender;
 - (IBAction)loopSingleAction:(id)sender;
 
-@property (unsafe_unretained) IBOutlet NSSlider *seekBar;
-- (IBAction)seekBarAction:(id)sender;
-
 @property (unsafe_unretained) IBOutlet NSMenuItem *cursorFollowsPlayback;
 - (IBAction)cursorFollowsPlaybackAction:(id)sender;
 
@@ -89,10 +114,10 @@
 - (IBAction)deselectAllAction:(id)sender;
 - (IBAction)invertSelectionAction:(id)sender;
 - (IBAction)selectionCropAction:(id)sender;
-- (IBAction)jumpToCurrentAction:(id)sender;
 
 // window menu
 - (IBAction)showMainWinAction:(id)sender;
 
-
 @end
+
+extern AppDelegate *g_appDelegate;

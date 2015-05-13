@@ -40,8 +40,10 @@ G_BEGIN_DECLS
 #define DDB_LISTVIEW_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), DDB_TYPE_LISTVIEW, DdbListviewClass))
 
 typedef struct {
-    int id;
+    int id; // predefined col type
     char *format;
+    char *bytecode;
+    int bytecode_len;
 } col_info_t;
 
 typedef struct _DdbListview DdbListview;
@@ -84,7 +86,7 @@ typedef struct {
     void (*select) (DdbListviewIter, int sel);
     int (*is_selected) (DdbListviewIter);
 
-    int (*get_group) (DdbListviewIter it, char *str, int size);
+    int (*get_group) (DdbListview *listview, DdbListviewIter it, char *str, int size);
 
     // drag-n-drop
     void (*drag_n_drop) (DdbListviewIter before, DdbPlaylistHandle playlist_from, uint32_t *indices, int length, int copy);
@@ -98,6 +100,7 @@ typedef struct {
     void (*handle_doubleclick) (DdbListview *listview, DdbListviewIter iter, int idx);
     void (*selection_changed) (DdbListview *listview, DdbListviewIter it, int idx);
     void (*delete_selected) (void);
+    void (*groups_changed) (DdbListview *listview, const char *format);
     void (*columns_changed) (DdbListview *listview);
     void (*column_size_changed) (DdbListview *listview, int col);
     void (*col_sort) (int col, int sort_order, void *user_data);
@@ -148,7 +151,7 @@ struct _DdbListview {
     // selection
     int areaselect; // boolean, whether area selection is active (1), or not (0)
     int areaselect_y; // pixel-coordinate of anchor click relative to playlist origin
-    int dragwait;
+    int dragwait; // set to 1 when mouse was pressed down on already selected track, but not moved since (so we're waiting for dnd to begin)
     int drag_source_playlist;
     int shift_sel_anchor;
 
@@ -189,6 +192,16 @@ struct _DdbListview {
     int cover_size;
     int new_cover_size;
     guint cover_refresh_timeout_id;
+
+    // group format string that's supposed to get parsed by tf
+    char *group_format;
+    // tf bytecode for group title
+    char *group_title_bytecode;
+    int group_title_bytecode_len;
+
+    guint tf_redraw_timeout_id;
+    int tf_redraw_track_idx;
+    DdbListviewIter tf_redraw_track;
 };
 
 struct _DdbListviewClass {

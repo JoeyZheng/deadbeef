@@ -138,7 +138,7 @@ void
 main_col_sort (int col, int sort_order, void *user_data) {
     col_info_t *c = (col_info_t*)user_data;
     ddb_playlist_t *plt = deadbeef->plt_get_curr ();
-    deadbeef->plt_sort (plt, PL_MAIN, c->id, c->format, sort_order-1);
+    deadbeef->plt_sort_v2 (plt, PL_MAIN, c->id, c->format, sort_order-1);
     deadbeef->plt_unref (plt);
 }
 void main_handle_doubleclick (DdbListview *listview, DdbListviewIter iter, int idx) {
@@ -174,12 +174,31 @@ main_is_selected (DdbListviewIter it) {
     return deadbeef->pl_is_selected ((DB_playItem_t *)it);
 }
 
+void
+main_groups_changed (DdbListview *listview, const char* format) {
+    if (!format) {
+        return;
+    }
+    if (listview->group_format) {
+        free (listview->group_format);
+    }
+    if (listview->group_title_bytecode_len >= 0) {
+        listview->group_title_bytecode_len = -1;
+    }
+    if (listview->group_title_bytecode) {
+        free (listview->group_title_bytecode);
+    }
+    deadbeef->conf_set_str ("gtkui.playlist.group_by", format);
+    listview->group_format = strdup (format);
+    listview->group_title_bytecode_len = deadbeef->tf_compile (listview->group_format, &(listview->group_title_bytecode));
+}
+
 static int lock_column_config = 0;
 
 void
 main_columns_changed (DdbListview *listview) {
     if (!lock_column_config) {
-        rewrite_column_config (listview, "playlist");
+        rewrite_column_config (listview, "gtkui.columns.playlist");
     }
 }
 
@@ -204,6 +223,9 @@ void main_col_free_user_data (void *data) {
         col_info_t *inf = data;
         if (inf->format) {
             free (inf->format);
+        }
+        if (inf->bytecode) {
+            free (inf->bytecode);
         }
         free (data);
     }
@@ -247,6 +269,7 @@ DdbListviewBinding main_binding = {
     .select = main_select,
 
     .get_group = pl_common_get_group,
+    .groups_changed = main_groups_changed,
 
     .drag_n_drop = main_drag_n_drop,
     .external_drag_n_drop = main_external_drag_n_drop,
@@ -278,22 +301,20 @@ main_playlist_init (GtkWidget *widget) {
     main_binding.unref = (void (*) (DdbListviewIter))deadbeef->pl_item_unref;
     ddb_listview_set_binding (listview, &main_binding);
     lock_column_config = 1;
-    DB_conf_item_t *col = deadbeef->conf_find ("playlist.column.", NULL);
-    if (!col) {
+    if (load_column_config (listview, "gtkui.columns.playlist") < 0) {
         // create default set of columns
-        add_column_helper (listview, "♫", 50, DB_COLUMN_PLAYING, NULL, 0);
-        add_column_helper (listview, _("Artist / Album"), 150, -1, "%a - %b", 0);
-        add_column_helper (listview, _("Track No"), 50, -1, "%n", 1);
-        add_column_helper (listview, _("Title"), 150, -1, "%t", 0);
-        add_column_helper (listview, _("Duration"), 50, -1, "%l", 1);
-    }
-    else {
-        while (col) {
-            append_column_from_textdef (listview, col->value);
-            col = deadbeef->conf_find ("playlist.column.", col);
-        }
+        add_column_helper (listview, "♫", 50, DB_COLUMN_PLAYING, "%playstatus%", 0);
+        add_column_helper (listview, _("Artist / Album"), 150, -1, "%artist% - %album%", 0);
+        add_column_helper (listview, _("Track No"), 50, -1, "%track%", 1);
+        add_column_helper (listview, _("Title"), 150, -1, "%title%", 0);
+        add_column_helper (listview, _("Duration"), 50, -1, "%length%", 0);
     }
     lock_column_config = 0;
+
+    deadbeef->conf_lock ();
+    listview->group_format = strdup (deadbeef->conf_get_str_fast ("gtkui.playlist.group_by", ""));
+    deadbeef->conf_unlock ();
+    listview->group_title_bytecode_len = deadbeef->tf_compile (listview->group_format, &(listview->group_title_bytecode));
 
     // FIXME: filepath should be in properties dialog, while tooltip should be
     // used to show text that doesn't fit in column width
@@ -309,6 +330,6 @@ main_playlist_init (GtkWidget *widget) {
 
 void
 main_refresh (void) {
-    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+    deadbeef->sendmessage (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
 }
 

@@ -68,6 +68,7 @@
 #ifdef HAVE_COCOAUI
 #include "cocoautil.h"
 #endif
+#include "playqueue.h"
 
 #ifndef PREFIX
 #error PREFIX must be defined
@@ -329,7 +330,7 @@ server_exec_command_line (const char *cmdline, int len, char *sendback, int sbsi
         // add files
         if (!queue) {
             plt_clear (curr_plt);
-            messagepump_push (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
+            messagepump_push (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
             plt_reset_cursor (curr_plt);
         }
         while (parg < pend) {
@@ -353,7 +354,8 @@ server_exec_command_line (const char *cmdline, int len, char *sendback, int sbsi
             parg += strlen (parg);
             parg++;
         }
-        messagepump_push (DB_EV_PLAYLIST_REFRESH, 0, 0, 0);
+        pl_save_current ();
+        messagepump_push (DB_EV_PLAYLISTCHANGED, 0, DDB_PLAYLIST_CHANGE_CONTENT, 0);
         plt_add_files_end (curr_plt, 0);
         plt_unref (curr_plt);
         if (!queue) {
@@ -573,7 +575,7 @@ player_mainloop (void) {
                     {
                         save_resume_state ();
 
-                        pl_playqueue_clear ();
+                        playqueue_clear ();
 
                         // stop streaming and playback before unloading plugins
                         DB_output_t *output = plug_get_output ();
@@ -587,7 +589,7 @@ player_mainloop (void) {
                     streamer_play_current_track ();
                     break;
                 case DB_EV_PLAY_NUM:
-                    pl_playqueue_clear ();
+                    playqueue_clear ();
                     streamer_set_nextsong (p1, 4);
                     break;
                 case DB_EV_STOP:
@@ -616,10 +618,6 @@ player_mainloop (void) {
                     break;
                 case DB_EV_PLAY_RANDOM:
                     streamer_move_to_randomsong (1);
-                    break;
-                case DB_EV_PLAYLIST_REFRESH:
-                    pl_save_current ();
-                    messagepump_push (DB_EV_PLAYLISTCHANGED, 0, 0, 0);
                     break;
                 case DB_EV_CONFIGCHANGED:
                     conf_save ();
@@ -706,6 +704,48 @@ plug_get_gui (void) {
     return NULL;
 }
 
+void
+main_cleanup_and_quit (void) {
+    // terminate server and wait for completion
+    if (server_tid) {
+        server_terminate = 1;
+        thread_join (server_tid);
+        server_tid = 0;
+    }
+
+    // save config
+    pl_save_all ();
+    conf_save ();
+
+    // delete legacy session file
+    {
+        char sessfile[1024]; // $HOME/.config/deadbeef/session
+        if (snprintf (sessfile, sizeof (sessfile), "%s/deadbeef/session", confdir) < sizeof (sessfile)) {
+            unlink (sessfile);
+        }
+    }
+
+    // stop receiving messages from outside
+    server_close ();
+
+    // plugins might still hold references to playitems,
+    // and query configuration in background
+    // so unload everything 1st before final cleanup
+    plug_disconnect_all ();
+    plug_unload_all ();
+
+    // at this point we can simply do exit(0), but let's clean up for debugging
+    pl_free (); // may access conf_*
+    conf_free ();
+
+    fprintf (stderr, "messagepump_free\n");
+    messagepump_free ();
+    fprintf (stderr, "plug_cleanup\n");
+    plug_cleanup ();
+
+    fprintf (stderr, "hej-hej!\n");
+}
+
 static void
 mainloop_thread (void *ctx) {
     // this runs until DB_EV_TERMINATE is sent (blocks right here)
@@ -713,6 +753,9 @@ mainloop_thread (void *ctx) {
 
     // tell the gui thread to finish
     DB_plugin_t *gui = plug_get_gui ();
+#if HAVE_COCOAUI
+    main_cleanup_and_quit();
+#endif
     if (gui) {
         gui->stop ();
     }
@@ -1023,49 +1066,11 @@ main (int argc, char *argv[]) {
     if (gui) {
         gui->start ();
     }
-
+    
     fprintf (stderr, "gui plugin has quit; waiting for mainloop thread to finish\n");
     thread_join (mainloop_tid);
 
-    // terminate server and wait for completion
-    if (server_tid) {
-        server_terminate = 1;
-        thread_join (server_tid);
-        server_tid = 0;
-    }
-
-    // save config
-    pl_save_all ();
-    conf_save ();
-
-    // delete legacy session file
-    {
-        char sessfile[1024]; // $HOME/.config/deadbeef/session
-        if (snprintf (sessfile, sizeof (sessfile), "%s/deadbeef/session", confdir) < sizeof (sessfile)) {
-            unlink (sessfile);
-        }
-    }
-
-    // stop receiving messages from outside
-    server_close ();
-
-    // plugins might still hold references to playitems,
-    // and query configuration in background
-    // so unload everything 1st before final cleanup
-    plug_disconnect_all ();
-    plug_unload_all ();
-
-    // at this point we can simply do exit(0), but let's clean up for debugging
-    pl_free (); // may access conf_*
-    conf_free ();
-
-    fprintf (stderr, "messagepump_free\n");
-    messagepump_free ();
-    fprintf (stderr, "plug_cleanup\n");
-    plug_cleanup ();
-
-    fprintf (stderr, "hej-hej!\n");
-
+    main_cleanup_and_quit ();
     return 0;
 }
 
